@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🧠 AI Learning Journey</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #87CEEB 0%, #4682B4 100%);
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    .game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .map-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      transform-origin: center center;
+    }
+    .map-level {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      visibility: hidden; /* Use visibility for better transition control */
+      transition: opacity 0.5s ease, visibility 0s linear 0.5s; /* Delay visibility change */
+      background-size: cover;
+      background-position: center;
+      overflow: hidden;
+    }
+    .map-level.active {
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.5s ease;
+    }
+    /* World Map (Countries) */
+    .world-map {
+      background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%); /* Light blue gradient */
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.2) 0%, transparent 50%);
+    }
+    /* Country Map (Cities) */
+    .country-map {
+      background: linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%); /* Light green gradient */
+    }
+    /* City Map (Districts) */
+    .city-map {
+      background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); /* Orange/Yellow gradient */
+    }
+    /* District Map (Levels) */
+    .district-map {
+      background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%); /* Pink/Purple gradient */
+    }
+    .level-node {
+      position: absolute;
+      width: 90px; /* Increased size for better tapability & text */
+      height: 90px;
+      border-radius: 50%;
+      display: flex;
+      flex-direction: column; /* For flag + name */
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-weight: bold;
+      font-size: 0.8rem; /* Adjusted for potentially longer names */
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      z-index: 10;
+      border: 5px solid #fff;
+      color: white;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+      padding: 5px;
+    }
+    .level-node .node-flag { /* For country flags */
+        font-size: 1.5rem;
+        margin-bottom: 2px;
+    }
+
+    .level-node:hover {
+      transform: scale(1.15);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+    }
+    .level-node.unlocked {
+      background: linear-gradient(135deg, #667eea, #764ba2); /* Purpleish for unlocked */
+    }
+    .level-node.completed {
+      background: linear-gradient(135deg, #38ef7d, #11998e); /* Green for completed */
+      position: relative;
+    }
+    .level-node.completed::after {
+      content: '✔️'; /* Checkmark for AI theme */
+      position: absolute;
+      top: -10px;
+      right: -10px;
+      font-size: 1.2rem;
+      background: #FFD700; /* Gold star background */
+      color: #333;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid white;
+    }
+    .level-node.locked {
+      background: linear-gradient(135deg, #95A5A6, #7F8C8D);
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    .level-node.current {
+      background: linear-gradient(135deg, #f5af19, #f12711); /* Bright Orange/Red for current */
+      animation: bounce-glow 1.5s infinite;
+    }
+    @keyframes gentle-pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    @keyframes bounce-glow {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 8px 20px rgba(243, 156, 18, 0.4);
+      }
+      50% {
+        transform: scale(1.1);
+        box-shadow: 0 12px 30px rgba(243, 156, 18, 0.7);
+      }
+    }
+    .path-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .candy-path {
+      position: absolute;
+      height: 12px; /* Thicker path */
+      background: linear-gradient(90deg, #fdfbfb, #ebedee 70%, #fdfbfb); /* Subtle white/grey path */
+      background-size: 80px 12px;
+      border-radius: 6px;
+      border: 3px solid rgba(0,0,0,0.1);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+      /* animation: rainbow-flow 3s linear infinite; */ /* Removed rainbow for a cleaner look */
+      transform-origin: 0 50%;
+    }
+    /* @keyframes rainbow-flow {
+      0% { background-position: 0% 0%; }
+      100% { background-position: 100% 0%; }
+    } */
+    .ui-controls {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 100;
+      display: flex;
+      gap: 15px;
+    }
+    .ui-controls button {
+      padding: 15px 25px;
+      border: none;
+      border-radius: 30px;
+      background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+      font-size: 1rem;
+    }
+    .ui-controls button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+    }
+    .ui-controls button:disabled {
+      background: linear-gradient(135deg, #b0b0b0, #8c8c8c);
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .level-info {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 100;
+      background: rgba(255,255,255,0.97);
+      padding: 20px 25px;
+      border-radius: 20px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0,0,0,0.1);
+      min-width: 280px;
+    }
+    .level-info h3 {
+      margin: 0 0 8px 0;
+      color: #333;
+      font-size: 1.4rem;
+    }
+    .level-info p {
+      margin: 0;
+      color: #555;
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+    .zoom-controls {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .zoom-btn {
+      width: 55px;
+      height: 55px;
+      border: none;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+      color: white;
+      font-size: 1.6rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+    .zoom-btn:hover {
+      transform: scale(1.1);
+    }
+    .progress-bar {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(255,255,255,0.97);
+      padding: 15px 20px;
+      border-radius: 20px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+      z-index: 100;
+    }
+    .progress-bar h4 {
+      margin: 0 0 8px 0;
+      color: #333;
+    }
+    .progress-track {
+      width: 200px;
+      height: 12px;
+      background: #e0e0e0;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #f5af19, #f12711); /* Same as current node */
+      border-radius: 6px;
+      transition: width 0.5s ease;
+    }
+    .game-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+    }
+    .game-modal.active {
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.3s ease;
+    }
+    .modal-content {
+      background: white;
+      padding: 30px 40px;
+      border-radius: 20px;
+      text-align: center;
+      max-width: 600px;
+      width: 90%;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      transform: scale(0.9);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Elastic transition */
+    }
+    .game-modal.active .modal-content {
+      transform: scale(1);
+    }
+    .question-text {
+      font-size: 1.7rem;
+      color: #2c3e50;
+      margin-bottom: 20px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+    .question-image { /* Emoji for question */
+      font-size: 3.5rem;
+      margin: 15px 0;
+    }
+    .answer-options {
+      display: grid; /* Using grid for better layout */
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 15px;
+      margin: 25px 0;
+    }
+    .answer-btn {
+      padding: 15px 20px;
+      font-size: 1.1rem; /* Slightly smaller for more options */
+      border: 2px solid #3498db;
+      border-radius: 10px;
+      background: white;
+      color: #3498db;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 500;
+    }
+    .answer-btn:hover:not(:disabled) {
+      background: #3498db;
+      color: white;
+      transform: translateY(-2px);
+    }
+    .answer-btn:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+    .answer-btn.correct {
+      background: #2ecc71 !important;
+      color: white !important;
+      border-color: #27ae60 !important;
+    }
+    .answer-btn.incorrect {
+      background: #e74c3c !important;
+      color: white !important;
+      border-color: #c0392b !important;
+      animation: shake 0.4s ease-in-out;
+    }
+    @keyframes shake { /* Subtle shake */
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-5px); }
+      40%, 80% { transform: translateX(5px); }
+    }
+    .continue-btn {
+      padding: 15px 35px;
+      font-size: 1.2rem;
+      background: linear-gradient(135deg, #38ef7d, #11998e); /* Green like completed */
+      color: white;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: all 0.3s ease;
+      display: none; /* Hidden by default */
+      font-weight: bold;
+    }
+    .continue-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    .feedback-message {
+      font-size: 1.3rem;
+      font-weight: bold;
+      margin: 15px 0;
+      min-height: 2.5em; /* Reserve space */
+      line-height: 1.5;
+    }
+    .feedback-message.success { color: #27ae60; }
+    .feedback-message.error { color: #c0392b; }
+
+    /* Decorative elements from original */
+    .decorative-element { position: absolute; pointer-events: none; z-index: 3; opacity: 0.5; }
+    .cloud { width: 120px; height: 60px; background: rgba(255,255,255,0.8); border-radius: 60px; animation: float-cloud 15s ease-in-out infinite alternate; }
+    .cloud::before, .cloud::after { content: ''; position: absolute; background: rgba(255,255,255,0.8); border-radius: 50%; }
+    .cloud::before { width: 50px; height: 50px; top: -25px; left: 20px; }
+    .cloud::after { width: 40px; height: 40px; top: -20px; right: 25px; }
+    @keyframes float-cloud { from { transform: translateX(-20px); } to { transform: translateX(20px); } }
+    .mountain { width: 0; height: 0; border-left: 60px solid transparent; border-right: 60px solid transparent; border-bottom: 90px solid rgba(101, 67, 33, 0.6); position: relative; }
+    .mountain::after { content: ''; position: absolute; width: 0; height: 0; border-left: 30px solid transparent; border-right: 30px solid transparent; border-bottom: 45px solid rgba(255, 255, 255, 0.7); top: -45px; left: -30px; }
+
+    @media (max-width: 768px) {
+      .level-node { width: 70px; height: 70px; font-size: 0.7rem; border-width: 3px; }
+      .level-node .node-flag { font-size: 1.2rem; }
+      .level-node.completed::after { width: 25px; height: 25px; font-size: 1rem; top: -8px; right: -8px; }
+      .ui-controls { gap: 8px; }
+      .ui-controls button { padding: 10px 15px; font-size: 0.8rem; }
+      .level-info { padding: 12px 18px; min-width: auto; width: calc(100% - 20px); top: 60px; right: 10px; left:10px; }
+      .level-info h3 { font-size: 1.2rem; } .level-info p { font-size: 0.85rem; }
+      .progress-bar { padding: 10px 15px; } .progress-track { width: 150px; }
+      .modal-content { padding: 20px; } .question-text { font-size: 1.4rem; }
+      .answer-options { grid-template-columns: 1fr; gap: 10px; } /* Single column for small screens */
+      .answer-btn { padding: 12px 15px; font-size: 1rem; }
+      .zoom-btn { width: 45px; height: 45px; font-size: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <div class="ui-controls">
+      <button id="back-btn" disabled>🔙 Back</button>
+      <button id="home-btn">🌍 Journey Home</button>
+      <button id="reset-btn">🔄 Reset Progress</button>
+    </div>
+
+    <div class="level-info">
+      <h3 id="current-level-title">AI Learning Journey</h3>
+      <p id="current-level-desc">Begin your adventure!</p>
+    </div>
+
+    <div class="zoom-controls">
+      <button class="zoom-btn" id="zoom-in">+</button>
+      <button class="zoom-btn" id="zoom-out">−</button>
+    </div>
+
+    <div class="progress-bar">
+      <h4>Overall Progress</h4>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width: 0%;"></div>
+      </div>
+    </div>
+
+    <div class="map-container" id="map-container">
+      <div class="map-level world-map active" id="world-map-level">
+        <div class="path-container"></div>
+        <div class="decorative-element cloud" style="top: 15%; left: 25%; animation-delay: 0s;"></div>
+        <div class="decorative-element cloud" style="top: 60%; right: 15%; animation-delay: -5s;"></div>
+      </div>
+      <div class="map-level country-map" id="country-map-level">
+        <div class="path-container"></div>
+      </div>
+      <div class="map-level city-map" id="city-map-level">
+        <div class="path-container"></div>
+      </div>
+      <div class="map-level district-map" id="district-map-level">
+        <div class="path-container"></div>
+      </div>
+    </div>
+
+    <div class="game-modal" id="game-modal">
+      <div class="modal-content">
+        <div id="modal-content-area">
+          <h2 class="question-text">Question placeholder</h2>
+          <div class="question-image">🧠</div>
+          <div class="answer-options"></div>
+          <div class="feedback-message"></div>
+          <button class="continue-btn" id="continue-btn">Continue</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+    let gameData = {
+      countries: [
+        { id: 'c1', name: "Algebra Avenue", flag: "📈", position: { x: 30, y: 40 }, unlocked: true, completed: false, description: "Master the foundational algebra concepts crucial for AI." },
+        { id: 'c2', name: "Calculus Country", flag: "∫", position: { x: 65, y: 55 }, unlocked: false, completed: false, description: "Explore derivatives and integrals, the language of change in AI." },
+        { id: 'c3', name: "Stats State", flag: "📊", position: { x: 45, y: 75 }, unlocked: false, completed: false, description: "Understand probability and statistics, key to data analysis." }
+      ],
+      cities: { // Keyed by country.id (Units)
+        'c1': [
+          { id: 'city101', name: "Variables & Expressions", position: { x: 25, y: 30 }, unlocked: true, completed: false, description: "Learn to work with algebraic variables and expressions." },
+          { id: 'city102', name: "Basic Equations", position: { x: 60, y: 65 }, unlocked: false, completed: false, description: "Solve simple linear equations." },
+        ],
+        'c2': [
+          { id: 'city201', name: "Derivatives Basics", position: { x: 30, y: 40 }, unlocked: true, completed: false, description: "Introduction to derivatives and their meaning." },
+          { id: 'city202', name: "Integral Concepts", position: { x: 70, y: 60 }, unlocked: false, completed: false, description: "Grasping the fundamentals of integration." },
+        ],
+        'c3': [
+          { id: 'city301', name: "Probability Intro", position: { x: 50, y: 50 }, unlocked: true, completed: false, description: "Core concepts of probability." }
+        ]
+      },
+      districts: { // Keyed by city.id (Sub-topics)
+        'city101': [
+          { id: 'dist10101', name: "What is a Variable?", position: { x: 50, y: 50 }, unlocked: true, completed: false, description: "Defining and using variables." },
+        ],
+        'city102': [
+          { id: 'dist10201', name: "Solving for x", position: { x: 50, y: 50 }, unlocked: true, completed: false, description: "Techniques for solving equations." },
+        ],
+        'city201': [
+          { id: 'dist20101', name: "Power Rule", position: { x: 30, y: 30 }, unlocked: true, completed: false, description: "Applying the power rule for differentiation." },
+          { id: 'dist20102', name: "Sum/Difference Rule", position: { x: 70, y: 60 }, unlocked: false, completed: false, description: "Differentiating sums and differences." },
+        ],
+         'city202': [
+          { id: 'dist20201', name: "Area Under Curve", position: { x: 50, y: 50 }, unlocked: true, completed: false, description: "Visualizing integrals." },
+        ],
+        'city301': [
+            {id: 'dist30101', name: "Basic Events", position: {x: 50, y:50}, unlocked: true, completed: false, description: "Understanding events and sample spaces."}
+        ]
+      },
+      levels: { // Keyed by district.id
+        'dist10101': [
+          { id: 'l_var1', name: "L1", position: { x: 30, y: 30 }, unlocked: true, completed: false },
+          { id: 'l_var2', name: "L2", position: { x: 70, y: 60 }, unlocked: false, completed: false },
+        ],
+        'dist10201': [
+          { id: 'l_eq1', name: "L1", position: { x: 50, y: 50 }, unlocked: true, completed: false },
+        ],
+        'dist20101': [
+          { id: 'l_pow1', name: "L1: x²", position: { x: 25, y: 35 }, unlocked: true, completed: false },
+          { id: 'l_pow2', name: "L2: 3x⁴", position: { x: 60, y: 70 }, unlocked: false, completed: false },
+        ],
+        'dist20102': [
+          { id: 'l_sum1', name: "L1: x+5", position: { x: 40, y: 50 }, unlocked: true, completed: false },
+        ],
+        'dist20201': [
+            { id: 'l_int1', name: "L1: Concept", position: {x: 50, y: 50}, unlocked: true, completed: false}
+        ],
+        'dist30101': [
+            { id: 'l_prob1', name: "L1: Coin Toss", position: {x: 30, y: 30}, unlocked: true, completed: false},
+            { id: 'l_prob2', name: "L2: Dice Roll", position: {x: 70, y: 60}, unlocked: false, completed: false}
+        ]
+      },
+      questions: { // Keyed by level.id
+        'l_var1': { question: "In algebra, what does a variable primarily represent?", image: "💡", options: ["A constant number", "An unknown value or quantity", "A mathematical operation"], correct: "An unknown value or quantity", explanation: "Variables (like x, y) stand for values that can change or are yet to be determined." },
+        'l_var2': { question: "If x = 5, what is the value of the expression 3x + 2?", image: "🧮", options: ["10", "17", "25"], correct: 17, explanation: "Substitute x=5: 3(5) + 2 = 15 + 2 = 17." },
+        'l_eq1': { question: "If 2a - 3 = 7, what is the value of 'a'?", image: "⚖️", options: ["2", "5", "10"], correct: 5, explanation: "2a = 7+3 => 2a = 10 => a = 5." },
+        'l_pow1': { question: "What is the derivative of x² with respect to x?", image: "📉", options: ["2x", "x", "2"], correct: "2x", explanation: "Using the power rule d/dx(xⁿ) = nxⁿ⁻¹, so d/dx(x²) = 2x¹ = 2x." },
+        'l_pow2': { question: "Find the derivative of 3x⁴.", image: "⚙️", options: ["12x³", "7x³", "3x³"], correct: "12x³", explanation: "d/dx(3x⁴) = 3 * d/dx(x⁴) = 3 * 4x³ = 12x³." },
+        'l_sum1': { question: "What is the derivative of x + 5?", image: "➕", options: ["1", "x", "5"], correct: 1, explanation: "d/dx(x) = 1, and the derivative of a constant (5) is 0. So, 1 + 0 = 1." },
+        'l_int1': { question: "What does an integral often represent in calculus?", image: "📐", options: ["Slope of a curve", "Rate of change", "Area under a curve"], correct: "Area under a curve", explanation: "A definite integral is commonly interpreted as the area between a curve and the x-axis."},
+        'l_prob1': { question: "What's the probability of getting 'Heads' when flipping a fair coin once?", image: "🪙", options: ["0", "0.5", "1"], correct: 0.5, explanation: "A fair coin has two equally likely outcomes (Heads, Tails), so P(Heads) = 1/2 = 0.5."},
+        'l_prob2': { question: "Probability of rolling a '4' on a standard 6-sided die?", image: "🎲", options: ["1/6", "4/6", "1/4"], correct: "1/6", explanation: "There is one '4' out of six equally likely outcomes."}
+      }
+    };
+    let initialGameData = JSON.parse(JSON.stringify(gameData));
+
+    let navigationStack = [];
+    let zoomLevel = 1;
+    let panX = 0; let panY = 0; // Panning not implemented
+    let currentQuestionContext = null;
+
+    const mapContainer = document.getElementById('map-container');
+    const backBtn = document.getElementById('back-btn');
+    const homeBtn = document.getElementById('home-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const zoomInBtn = document.getElementById('zoom-in');
+    const zoomOutBtn = document.getElementById('zoom-out');
+    const levelTitle = document.getElementById('current-level-title');
+    const levelDesc = document.getElementById('current-level-desc');
+    const progressFill = document.getElementById('progress-fill');
+    const gameModal = document.getElementById('game-modal');
+    const modalQuestionText = gameModal.querySelector('.question-text');
+    const modalQuestionImage = gameModal.querySelector('.question-image');
+    const modalAnswerOptions = gameModal.querySelector('.answer-options');
+    const modalFeedback = gameModal.querySelector('.feedback-message');
+    const modalContinueBtn = gameModal.querySelector('#continue-btn');
+
+    function setActiveMapLevel(mapElementId) {
+      document.querySelectorAll('.map-level').forEach(ml => ml.classList.remove('active'));
+      if (mapElementId) document.getElementById(mapElementId).classList.add('active');
+    }
+
+    function renderMap() {
+      if (navigationStack.length === 0) return;
+      const currentNavState = navigationStack[navigationStack.length - 1];
+      const { viewType, items, title, description, mapElementId } = currentNavState;
+
+      setActiveMapLevel(mapElementId);
+      const mapElement = document.getElementById(mapElementId);
+      const pathContainer = mapElement.querySelector('.path-container');
+
+      mapElement.querySelectorAll('.level-node').forEach(node => node.remove());
+      if(pathContainer) pathContainer.innerHTML = '';
+
+      levelTitle.textContent = title;
+      levelDesc.textContent = description;
+
+      let firstUnlockedIncompleteNode = null;
+      (items || []).forEach((item) => {
+        const node = document.createElement('div');
+        node.classList.add('level-node');
+        node.style.left = `${item.position.x}%`;
+        node.style.top = `${item.position.y}%`;
+
+        let nodeText = '';
+        if (viewType === 'world' && item.flag) {
+            nodeText = `<span class="node-flag">${item.flag}</span>${item.name}`;
+        } else {
+            nodeText = item.name;
+        }
+        node.innerHTML = nodeText;
+
+        if (item.completed) {
+          node.classList.add('completed');
+        } else if (item.unlocked) {
+          node.classList.add('unlocked');
+          if (!firstUnlockedIncompleteNode) {
+            firstUnlockedIncompleteNode = node;
+          }
+        } else {
+          node.classList.add('locked');
+        }
+        
+        node.addEventListener('click', () => handleNodeClick(item, viewType));
+        mapElement.appendChild(node);
+      });
+      
+      if (firstUnlockedIncompleteNode) {
+          firstUnlockedIncompleteNode.classList.remove('unlocked');
+          firstUnlockedIncompleteNode.classList.add('current');
+      }
+
+      if(pathContainer && items) drawPaths(pathContainer, items);
+      updateUIControls();
+    }
+
+    function drawPaths(pathContainer, items) {
+      const nodeSize = 90; 
+      for (let i = 0; i < items.length - 1; i++) {
+        const item1 = items[i];
+        const item2 = items[i+1];
+
+        if (!item2.unlocked && !item1.completed) continue;
+
+        const p1 = item1.position; const p2 = item2.position;
+        const mapWidth = pathContainer.offsetWidth; const mapHeight = pathContainer.offsetHeight;
+
+        const x1 = (p1.x / 100) * mapWidth + nodeSize / 2 * zoomLevel;
+        const y1 = (p1.y / 100) * mapHeight + nodeSize / 2 * zoomLevel;
+        const x2 = (p2.x / 100) * mapWidth + nodeSize / 2 * zoomLevel;
+        const y2 = (p2.y / 100) * mapHeight + nodeSize / 2 * zoomLevel;
+        
+        const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+        const angle = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);
+
+        const path = document.createElement('div');
+        path.classList.add('candy-path');
+        path.style.width = `${length}px`;
+        path.style.left = `${x1}px`;
+        path.style.top = `${y1 - 6}px`; // Adjust for path height
+        path.style.transform = `rotate(${angle}deg)`;
+        pathContainer.appendChild(path);
+      }
+    }
+
+    function handleNodeClick(item, currentViewType) {
+      if (!item.unlocked && !item.completed) return;
+
+      let nextViewType, nextItems = [], nextTitle, nextDescription, nextMapElementId, parentIdForNextView;
+      const currentStackTop = navigationStack.length > 0 ? navigationStack[navigationStack.length - 1] : {};
+
+      switch (currentViewType) {
+        case 'world': // Clicked a country
+          nextViewType = 'country'; nextItems = gameData.cities[item.id] || [];
+          nextTitle = item.name; nextDescription = item.description;
+          nextMapElementId = 'country-map-level'; parentIdForNextView = null; // Country is top level for its items
+          break;
+        case 'country': // Clicked a city
+          nextViewType = 'city'; nextItems = gameData.districts[item.id] || [];
+          nextTitle = item.name; nextDescription = item.description;
+          nextMapElementId = 'city-map-level'; parentIdForNextView = currentStackTop.id; // Country ID
+          break;
+        case 'city': // Clicked a district
+          nextViewType = 'levels'; nextItems = gameData.levels[item.id] || [];
+          nextTitle = item.name; nextDescription = item.description;
+          nextMapElementId = 'district-map-level'; parentIdForNextView = currentStackTop.id; // City ID
+          break;
+        case 'levels': // Clicked a level
+          if (item.unlocked || item.completed) {
+            currentQuestionContext = {
+              level: item,
+              question: gameData.questions[item.id],
+              districtId: currentStackTop.id, // District ID
+              cityId: currentStackTop.parentId, // City ID
+              countryId: navigationStack.find(s => s.viewType === 'city' && s.id === currentStackTop.parentId)?.parentId || null
+            };
+            if (currentQuestionContext.question) showQuestionModal();
+            else console.error(`No question for level ID: ${item.id}`);
+          }
+          return; 
+        default: return;
+      }
+      
+      if (nextItems.length === 0 && nextViewType !== 'levels') {
+         levelDesc.textContent = `No further content in ${item.name} yet.`;
+         return;
+      }
+      
+      navigationStack.push({ 
+          viewType: nextViewType, items: nextItems, title: nextTitle, 
+          description: nextDescription, mapElementId: nextMapElementId, 
+          id: item.id, parentId: parentIdForNextView 
+      });
+      renderMap();
+    }
+
+    function goToWorld() {
+      navigationStack = [{ 
+        viewType: 'world', items: gameData.countries, title: 'AI Learning Journey', 
+        description: 'Select a subject area to begin your exploration.',
+        mapElementId: 'world-map-level', id: null, parentId: null 
+      }];
+      renderMap();
+    }
+
+    function goBack() {
+      if (navigationStack.length > 1) {
+        navigationStack.pop();
+        renderMap();
+      }
+    }
+    
+    function showQuestionModal() {
+        if (!currentQuestionContext || !currentQuestionContext.question) return;
+        const { question, image, options } = currentQuestionContext.question;
+        modalQuestionText.textContent = question;
+        modalQuestionImage.textContent = image || '🧠';
+        modalAnswerOptions.innerHTML = '';
+
+        options.forEach(option => {
+            const btn = document.createElement('button');
+            btn.classList.add('answer-btn');
+            btn.textContent = option;
+            btn.addEventListener('click', () => handleAnswerSelection(option, btn), { once: true }); // Allow only one click
+            modalAnswerOptions.appendChild(btn);
+        });
+
+        modalFeedback.textContent = '';
+        modalFeedback.className = 'feedback-message';
+        modalContinueBtn.style.display = 'none';
+        modalContinueBtn.onclick = () => closeModalAndRefresh();
+        modalAnswerOptions.querySelectorAll('.answer-btn').forEach(b => b.disabled = false);
+        gameModal.classList.add('active');
+    }
+
+    function handleAnswerSelection(selectedOption, buttonElement) {
+        if (!currentQuestionContext) return;
+        const { correct, explanation } = currentQuestionContext.question;
+        const isCorrect = selectedOption === correct;
+
+        modalAnswerOptions.querySelectorAll('.answer-btn').forEach(btn => {
+            btn.disabled = true; // Disable all buttons
+            if (btn.textContent == correct.toString()) btn.classList.add('correct');
+        });
+
+        if (isCorrect) {
+            buttonElement.classList.add('correct'); // Ensure selected is also marked
+            modalFeedback.textContent = `Correct! ${explanation}`;
+            modalFeedback.className = 'feedback-message success';
+            
+            if (!currentQuestionContext.level.completed) {
+                currentQuestionContext.level.completed = true;
+                processCompletionChain();
+            }
+            updateProgress();
+        } else {
+            buttonElement.classList.add('incorrect');
+            modalFeedback.textContent = `Not quite. ${explanation}`;
+            modalFeedback.className = 'feedback-message error';
+        }
+        modalContinueBtn.style.display = 'inline-block';
+    }
+
+    function processCompletionChain() {
+        const { level, districtId, cityId, countryId } = currentQuestionContext;
+
+        // 1. Check levels in current district
+        const levelsInDistrict = gameData.levels[districtId];
+        unlockNextInList(levelsInDistrict, level.id);
+        if (areAllComplete(levelsInDistrict)) {
+            const districtItem = findItemByIdInParentList(gameData.districts[cityId], districtId);
+            if (districtItem) {
+                districtItem.completed = true;
+                // 2. Check districts in current city
+                const districtsInCity = gameData.districts[cityId];
+                unlockNextInList(districtsInCity, districtId);
+                if (areAllComplete(districtsInCity)) {
+                    const cityItem = findItemByIdInParentList(gameData.cities[countryId], cityId);
+                    if (cityItem) {
+                        cityItem.completed = true;
+                        // 3. Check cities in current country
+                        const citiesInCountry = gameData.cities[countryId];
+                        unlockNextInList(citiesInCountry, cityId);
+                        if (areAllComplete(citiesInCountry)) {
+                            const countryItem = findItemByIdInParentList(gameData.countries, countryId);
+                            if (countryItem) {
+                                countryItem.completed = true;
+                                // 4. Unlock next country
+                                unlockNextInList(gameData.countries, countryId);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    function findItemByIdInParentList(list, itemId) {
+        if (!list) return null;
+        return list.find(item => item.id === itemId);
+    }
+
+    function unlockNextInList(list, completedItemId) {
+        if (!list) return;
+        const currentIndex = list.findIndex(item => item.id === completedItemId);
+        if (currentIndex !== -1 && currentIndex + 1 < list.length) {
+            const nextItem = list[currentIndex + 1];
+            if (!nextItem.unlocked) { // Only unlock if not already unlocked
+                nextItem.unlocked = true;
+                // If this newly unlocked item is a container, unlock its first child.
+                // This recursive unlocking of first children ensures a playable path.
+                unlockFirstChildOf(nextItem);
+            }
+        }
+    }
+    
+    function unlockFirstChildOf(parentItem) {
+        let firstChildList;
+        if (gameData.cities[parentItem.id]) { // Parent is a country, child is city
+            firstChildList = gameData.cities[parentItem.id];
+        } else if (gameData.districts[parentItem.id]) { // Parent is a city, child is district
+            firstChildList = gameData.districts[parentItem.id];
+        } else if (gameData.levels[parentItem.id]) { // Parent is a district, child is level
+            firstChildList = gameData.levels[parentItem.id];
+        }
+
+        if (firstChildList && firstChildList.length > 0 && !firstChildList[0].unlocked) {
+            firstChildList[0].unlocked = true;
+            unlockFirstChildOf(firstChildList[0]); // Recursively unlock its first child
+        }
+    }
+
+
+    function areAllComplete(list) {
+        if (!list || list.length === 0) return true; // Empty list is "complete" for progression
+        return list.every(item => item.completed);
+    }
+
+    function closeModalAndRefresh() {
+        gameModal.classList.remove('active');
+        currentQuestionContext = null;
+        renderMap(); 
+    }
+    
+    function updateUIControls() {
+      backBtn.disabled = navigationStack.length <= 1;
+    }
+
+    function updateZoomPan() {
+      mapContainer.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomLevel})`;
+      if (navigationStack.length > 0) {
+        const currentNavState = navigationStack[navigationStack.length - 1];
+        const mapElement = document.getElementById(currentNavState.mapElementId);
+        if (mapElement) {
+            const pathContainer = mapElement.querySelector('.path-container');
+            if (pathContainer && currentNavState.items) {
+                pathContainer.innerHTML = ''; 
+                drawPaths(pathContainer, currentNavState.items);
+            }
+        }
+      }
+    }
+    
+    function updateProgress() {
+        let totalPlayableLevels = 0;
+        let completedPlayableLevels = 0;
+        Object.values(gameData.levels).forEach(districtLevels => {
+            districtLevels.forEach(level => {
+                totalPlayableLevels++;
+                if (level.completed) completedPlayableLevels++;
+            });
+        });
+        const progressPercent = totalPlayableLevels > 0 ? (completedPlayableLevels / totalPlayableLevels) * 100 : 0;
+        progressFill.style.width = `${progressPercent}%`;
+    }
+
+    function resetGame() {
+      gameData = JSON.parse(JSON.stringify(initialGameData));
+      zoomLevel = 1; panX = 0; panY = 0;
+      updateZoomPan();
+      goToWorld();
+      updateProgress();
+      if (gameModal.classList.contains('active')) closeModalAndRefresh();
+    }
+
+    backBtn.addEventListener('click', goBack);
+    homeBtn.addEventListener('click', goToWorld);
+    resetBtn.addEventListener('click', resetGame);
+    zoomInBtn.addEventListener('click', () => { zoomLevel = Math.min(2.5, zoomLevel + 0.15); updateZoomPan(); });
+    zoomOutBtn.addEventListener('click', () => { zoomLevel = Math.max(0.5, zoomLevel - 0.15); updateZoomPan(); });
+
+    function initGame() {
+      // Ensure initial unlocked states are respected for first children
+      gameData.countries.forEach(country => {
+          if (country.unlocked) unlockFirstChildOf(country);
+      });
+      goToWorld();
+      updateProgress();
+    }
+    document.addEventListener('DOMContentLoaded', initGame);
+  </script>
+</body>
+</html>

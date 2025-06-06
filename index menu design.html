@@ -1,0 +1,515 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌍 Counting Adventures</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Comic Sans MS', cursive, sans-serif;
+      background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #2d3436;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      padding: 2rem;
+      max-width: 800px;
+      width: 90%;
+      text-align: center;
+    }
+
+    h1 {
+      color: #6c5ce7;
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      color: #2d3436;
+      font-size: 1.8rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .view {
+      display: none;
+    }
+
+    .view.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    button {
+      background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      margin: 10px;
+      border-radius: 50px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0,184,148,0.3);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,184,148,0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .country, .city, .district {
+      display: inline-block;
+      padding: 20px 30px;
+      margin: 15px;
+      border: 3px solid transparent;
+      border-radius: 15px;
+      background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
+      color: white;
+      font-size: 1.3rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(253,203,110,0.3);
+      min-width: 150px;
+    }
+
+    .country:hover, .city:hover, .district:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(253,203,110,0.4);
+    }
+
+    .locked {
+      background: linear-gradient(135deg, #b2bec3 0%, #636e72 100%);
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .locked:hover {
+      transform: none;
+      box-shadow: 0 4px 15px rgba(178,190,195,0.3);
+    }
+
+    .objects {
+      font-size: 4rem;
+      margin: 2rem 0;
+      padding: 2rem;
+      background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+      border-radius: 15px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      min-height: 120px;
+    }
+
+    .answer-container {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-top: 2rem;
+    }
+
+    .answer-btn {
+      background: linear-gradient(135deg, #fd79a8 0%, #e84393 100%);
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      font-size: 2rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .answer-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 6px 20px rgba(253,121,168,0.4);
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-10px); }
+      75% { transform: translateX(10px); }
+    }
+
+    .shake {
+      animation: shake 0.5s ease-in-out;
+    }
+
+    .success-message {
+      background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 15px;
+      margin: 20px 0;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .back-btn {
+      background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+      margin-top: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 1rem;
+        margin: 1rem;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+      
+      .objects {
+        font-size: 3rem;
+      }
+      
+      .answer-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Main Menu -->
+    <div id="main-menu" class="view active">
+      <h1>🌍 Counting Adventures</h1>
+      <p style="font-size: 1.2rem; margin-bottom: 2rem; color: #636e72;">
+        Explore magical lands and learn to count!
+      </p>
+      <button id="start-btn">🚀 Start Adventure</button>
+      <button id="help-btn">❓ How to Play</button>
+    </div>
+
+    <!-- Help View -->
+    <div id="help-view" class="view">
+      <h2>🎮 How to Play</h2>
+      <div style="text-align: left; max-width: 600px; margin: 0 auto;">
+        <p style="margin-bottom: 1rem; font-size: 1.1rem;">
+          <strong>🗺️ Navigate:</strong> Click on countries, then cities, then districts to explore!
+        </p>
+        <p style="margin-bottom: 1rem; font-size: 1.1rem;">
+          <strong>🔢 Count:</strong> Count the objects you see and click the correct number.
+        </p>
+        <p style="margin-bottom: 1rem; font-size: 1.1rem;">
+          <strong>🏆 Progress:</strong> Complete districts to unlock new areas!
+        </p>
+        <p style="margin-bottom: 1rem; font-size: 1.1rem;">
+          <strong>🔒 Locked Areas:</strong> Gray areas are locked - complete previous levels first!
+        </p>
+      </div>
+      <button id="back-to-menu" class="back-btn">🏠 Back to Menu</button>
+    </div>
+
+    <!-- Country View -->
+    <div id="country-view" class="view">
+      <h2>🌍 Choose Your Country</h2>
+      <div id="countries-container"></div>
+      <button id="country-back" class="back-btn">🏠 Back to Menu</button>
+    </div>
+
+    <!-- City View -->
+    <div id="city-view" class="view">
+      <h2>🏙️ Choose Your City</h2>
+      <div id="cities-container"></div>
+      <button id="city-back" class="back-btn">🌍 Back to Countries</button>
+    </div>
+
+    <!-- District View -->
+    <div id="district-view" class="view">
+      <h2>🏘️ Choose Your District</h2>
+      <div id="districts-container"></div>
+      <button id="district-back" class="back-btn">🏙️ Back to Cities</button>
+    </div>
+
+    <!-- Game View -->
+    <div id="game-view" class="view">
+      <h2 id="game-question">Count the objects!</h2>
+      <div id="game-objects" class="objects"></div>
+      <div id="answer-buttons" class="answer-container"></div>
+      <button id="game-back" class="back-btn">🏘️ Back to Districts</button>
+    </div>
+  </div>
+
+  <script>
+    // Game data
+    const gameData = {
+      countries: [
+        { id: 1, name: "🏰 Numberland", description: "The magical land of numbers!", unlocked: true },
+        { id: 2, name: "🌟 Countopia", description: "Advanced counting adventures!", unlocked: false },
+        { id: 3, name: "🎯 Mathville", description: "Master counting challenges!", unlocked: false }
+      ],
+      cities: [
+        { id: 1, countryId: 1, name: "🏠 Count City", unlocked: true },
+        { id: 2, countryId: 1, name: "⭐ Number Town", unlocked: false },
+        { id: 3, countryId: 2, name: "🎪 Fun Fair", unlocked: false },
+        { id: 4, countryId: 2, name: "🏖️ Beach Bay", unlocked: false },
+        { id: 5, countryId: 3, name: "🏔️ Summit City", unlocked: false }
+      ],
+      districts: [
+        { id: 1, cityId: 1, name: "⛵ Boat Harbor", concept: "boats", unlocked: true },
+        { id: 2, cityId: 1, name: "🍎 Apple Market", concept: "apples", unlocked: false },
+        { id: 3, cityId: 1, name: "🚗 Car Park", concept: "cars", unlocked: false },
+        { id: 4, cityId: 2, name: "🌸 Flower Garden", concept: "flowers", unlocked: false },
+        { id: 5, cityId: 2, name: "⭐ Star Plaza", concept: "stars", unlocked: false },
+        { id: 6, cityId: 3, name: "🎈 Balloon Square", concept: "balloons", unlocked: false },
+        { id: 7, cityId: 4, name: "🐚 Shell Beach", concept: "shells", unlocked: false },
+        { id: 8, cityId: 5, name: "❄️ Snow Peak", concept: "snowflakes", unlocked: false }
+      ]
+    };
+
+    // Concept emojis
+    const conceptEmojis = {
+      boats: "⛵",
+      apples: "🍎", 
+      cars: "🚗",
+      flowers: "🌸",
+      stars: "⭐",
+      balloons: "🎈",
+      shells: "🐚",
+      snowflakes: "❄️"
+    };
+
+    // Game state
+    let currentCountry = null;
+    let currentCity = null;
+    let currentDistrict = null;
+    let correctAnswer = 0;
+
+    // DOM elements
+    const views = {
+      mainMenu: document.getElementById('main-menu'),
+      help: document.getElementById('help-view'),
+      country: document.getElementById('country-view'),
+      city: document.getElementById('city-view'),
+      district: document.getElementById('district-view'),
+      game: document.getElementById('game-view')
+    };
+
+    // Show view function
+    function showView(viewName) {
+      Object.values(views).forEach(view => view.classList.remove('active'));
+      views[viewName].classList.add('active');
+    }
+
+    // Event listeners
+    document.getElementById('start-btn').addEventListener('click', loadCountries);
+    document.getElementById('help-btn').addEventListener('click', () => showView('help'));
+    document.getElementById('back-to-menu').addEventListener('click', () => showView('mainMenu'));
+    document.getElementById('country-back').addEventListener('click', () => showView('mainMenu'));
+    document.getElementById('city-back').addEventListener('click', loadCountries);
+    document.getElementById('district-back').addEventListener('click', () => loadCities(currentCountry));
+    document.getElementById('game-back').addEventListener('click', () => loadDistricts(currentCity));
+
+    // Load countries
+    function loadCountries() {
+      const container = document.getElementById('countries-container');
+      container.innerHTML = '';
+      
+      gameData.countries.forEach(country => {
+        const btn = document.createElement('button');
+        btn.textContent = country.name;
+        btn.className = 'country';
+        
+        if (!country.unlocked) {
+          btn.classList.add('locked');
+        } else {
+          btn.addEventListener('click', () => {
+            currentCountry = country.id;
+            loadCities(country.id);
+          });
+        }
+        
+        container.appendChild(btn);
+      });
+      
+      showView('country');
+    }
+
+    // Load cities
+    function loadCities(countryId) {
+      const container = document.getElementById('cities-container');
+      container.innerHTML = '';
+      
+      const cities = gameData.cities.filter(city => city.countryId === countryId);
+      
+      cities.forEach(city => {
+        const btn = document.createElement('button');
+        btn.textContent = city.name;
+        btn.className = 'city';
+        
+        if (!city.unlocked) {
+          btn.classList.add('locked');
+        } else {
+          btn.addEventListener('click', () => {
+            currentCity = city.id;
+            loadDistricts(city.id);
+          });
+        }
+        
+        container.appendChild(btn);
+      });
+      
+      showView('city');
+    }
+
+    // Load districts
+    function loadDistricts(cityId) {
+      const container = document.getElementById('districts-container');
+      container.innerHTML = '';
+      
+      const districts = gameData.districts.filter(district => district.cityId === cityId);
+      
+      districts.forEach(district => {
+        const btn = document.createElement('button');
+        btn.textContent = district.name;
+        btn.className = 'district';
+        
+        if (!district.unlocked) {
+          btn.classList.add('locked');
+        } else {
+          btn.addEventListener('click', () => {
+            currentDistrict = district;
+            startGame(district);
+          });
+        }
+        
+        container.appendChild(btn);
+      });
+      
+      showView('district');
+    }
+
+    // Start game
+    function startGame(district) {
+      const questionEl = document.getElementById('game-question');
+      const objectsEl = document.getElementById('game-objects');
+      const buttonsEl = document.getElementById('answer-buttons');
+      
+      // Set question
+      questionEl.textContent = `Count the ${district.concept}!`;
+      
+      // Generate random count (1-5)
+      correctAnswer = Math.floor(Math.random() * 5) + 1;
+      
+      // Display objects
+      const emoji = conceptEmojis[district.concept] || "⭐";
+      objectsEl.innerHTML = '';
+      
+      for (let i = 0; i < correctAnswer; i++) {
+        const span = document.createElement('span');
+        span.textContent = emoji;
+        span.style.margin = '5px';
+        objectsEl.appendChild(span);
+      }
+      
+      // Create answer buttons
+      buttonsEl.innerHTML = '';
+      for (let i = 1; i <= 5; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.className = 'answer-btn';
+        btn.addEventListener('click', () => checkAnswer(i));
+        buttonsEl.appendChild(btn);
+      }
+      
+      showView('game');
+    }
+
+    // Check answer
+    function checkAnswer(selectedAnswer) {
+      if (selectedAnswer === correctAnswer) {
+        // Correct answer - show success and unlock next level
+        showSuccess();
+        unlockNextLevel();
+      } else {
+        // Wrong answer - shake effect
+        const gameView = document.getElementById('game-view');
+        gameView.classList.add('shake');
+        setTimeout(() => {
+          gameView.classList.remove('shake');
+        }, 500);
+      }
+    }
+
+    // Show success message
+    function showSuccess() {
+      const gameView = document.getElementById('game-view');
+      const successMsg = document.createElement('div');
+      successMsg.className = 'success-message';
+      successMsg.textContent = '🎉 Excellent! You got it right! 🎉';
+      
+      gameView.insertBefore(successMsg, gameView.firstChild);
+      
+      setTimeout(() => {
+        successMsg.remove();
+        loadDistricts(currentCity);
+      }, 2000);
+    }
+
+    // Unlock next level
+    function unlockNextLevel() {
+      const districtId = currentDistrict.id;
+      
+      // Find current district and mark as completed
+      const district = gameData.districts.find(d => d.id === districtId);
+      if (!district) return;
+      
+      // Find districts in the same city
+      const cityDistricts = gameData.districts.filter(d => d.cityId === district.cityId);
+      const currentIndex = cityDistricts.findIndex(d => d.id === districtId);
+      
+      // Unlock next district in same city
+      if (currentIndex < cityDistricts.length - 1) {
+        cityDistricts[currentIndex + 1].unlocked = true;
+      } else {
+        // All districts in city completed - unlock next city
+        const city = gameData.cities.find(c => c.id === district.cityId);
+        const countryCities = gameData.cities.filter(c => c.countryId === city.countryId);
+        const cityIndex = countryCities.findIndex(c => c.id === city.id);
+        
+        if (cityIndex < countryCities.length - 1) {
+          countryCities[cityIndex + 1].unlocked = true;
+        } else {
+          // All cities in country completed - unlock next country
+          const countryIndex = gameData.countries.findIndex(c => c.id === city.countryId);
+          if (countryIndex < gameData.countries.length - 1) {
+            gameData.countries[countryIndex + 1].unlocked = true;
+          }
+        }
+      }
+    }
+  </script>
+</body>
+</html>
